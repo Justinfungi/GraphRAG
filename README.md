@@ -1,4 +1,4 @@
-# GraphRAG Implementation
+# GraphRAG
 
 This project implements GraphRAG using LLaMA 3 for knowledge graph construction and evaluation on the 2WikiMultihopQA dataset.
 
