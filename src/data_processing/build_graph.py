@@ -10,6 +10,9 @@ from tqdm import tqdm
 import spacy
 from config.config import *
 
+#spacy.cli.download("en_core_web_sm")
+
+
 class KnowledgeGraphBuilder:
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained(LLAMA_MODEL_PATH)
@@ -82,14 +85,38 @@ class KnowledgeGraphBuilder:
                 session.execute_write(self.create_graph_relations, entity1, relation, entity2)
 
     def build_knowledge_graph(self):
-        """Build knowledge graph from para_with_hyperlink.jsonl"""
-        jsonl_path = Path(DATASET_PATH) / "para_with_hyperlink.jsonl"
+        """Build knowledge graph from train.json"""
+        # Using the absolute path from config
+        print(f"Processing data from {DATASET_PATH}...")
         
-        print(f"Processing paragraphs from {jsonl_path}...")
-        with open(jsonl_path, 'r', encoding='utf-8') as f:
-            for line in tqdm(f):
-                paragraph = json.loads(line.strip())
-                self.process_document(paragraph)
+        with open(DATASET_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            for item in tqdm(data):
+                # Extract and process paragraphs based on the structure of train.json
+                # Note: This will need to be adjusted based on the actual structure of train.json
+                if 'context' in item:
+                    for paragraph_data in item['context']:
+                        # Create a paragraph object in the expected format
+                        paragraph = {
+                            'text': paragraph_data[1][0] if paragraph_data[1] else "",
+                            'hyperlinks': self._extract_hyperlinks(paragraph_data[1][0]) if paragraph_data[1] else []
+                        }
+                        self.process_document(paragraph)
+    
+    def _extract_hyperlinks(self, text):
+        """Extract hyperlinks from text using NLP techniques"""
+        hyperlinks = []
+        doc = self.nlp(text)
+        
+        # Use Named Entity Recognition to identify potential hyperlinks
+        for ent in doc.ents:
+            if ent.label_ in ['PERSON', 'ORG', 'GPE', 'LOC', 'WORK_OF_ART']:
+                hyperlinks.append({
+                    'target_title': ent.text,
+                    'mention': ent.text
+                })
+        
+        return hyperlinks
 
 def main():
     builder = KnowledgeGraphBuilder()

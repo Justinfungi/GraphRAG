@@ -3,7 +3,7 @@ import torch
 
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent
-DATASET_PATH = PROJECT_ROOT / "dataset"
+DATASET_PATH = "/mnt/znzz/jus/code/self/GraphRAG/dataset/train.json"  # Updated to use absolute path to train.json
 CACHE_PATH = PROJECT_ROOT / "cache"
 
 # Neo4j configuration
