@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GraphRAG Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">GraphRAG Question Answering</h1>
+        
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="question">
+                        Question
+                    </label>
+                    <textarea
+                        id="question"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        rows="3"
+                        placeholder="Enter your question here..."
+                    ></textarea>
+                </div>
+                
+                <div class="flex justify-center">
+                    <button
+                        onclick="submitQuestion()"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    >
+                        Submit
+                    </button>
+                </div>
+
+                <div class="mt-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Answer
+                    </label>
+                    <div
+                        id="answer"
+                        class="bg-gray-100 border rounded p-4 min-h-[100px] text-gray-700"
+                    >
+                        Response will appear here...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="evaluation-section mt-8">
+        <h2 class="text-2xl font-bold mb-4 text-center">Model Evaluation</h2>
+        <div class="flex justify-center">
+            <button
+                onclick="runEvaluation()"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+                Run Evaluation
+            </button>
+        </div>
+        <div id="evaluationResults" class="mt-6"></div>
+    </div>
+
+    <script>
+        async function submitQuestion() {
+            const question = document.getElementById('question').value;
+            const answerDiv = document.getElementById('answer');
+            
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+            
+            answerDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    answerDiv.textContent = data.response;
+                } else {
+                    answerDiv.textContent = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                answerDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function runEvaluation() {
+            const resultsDiv = document.getElementById('evaluationResults');
+            resultsDiv.textContent = 'Running evaluation (this may take a few minutes)...';
+            
+            try {
+                const response = await fetch('/evaluate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultsDiv.textContent = `Error: ${data.error}`;
+                    return;
+                }
+                
+                let html = `
+                    <div class="metrics">
+                        <h3 class="text-lg font-bold mb-2">Metrics</h3>
+                        <p>Accuracy: ${(data.metrics.accuracy * 100).toFixed(2)}%</p>
+                        <p>Number of Examples: ${data.metrics.num_examples}</p>
+                        <p>Timestamp: ${new Date(data.metrics.timestamp).toLocaleString()}</p>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 mt-4">Predictions</h3>
+                `;
+                
+                data.predictions.forEach((pred, index) => {
+                    html += `
+                        <div class="prediction mt-4">
+                            <p><strong>Question ${index + 1}:</strong> ${pred.question}</p>
+                            <p><strong>Predicted:</strong> ${pred.predicted}</p>
+                            <p><strong>Actual:</strong> ${pred.actual}</p>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
